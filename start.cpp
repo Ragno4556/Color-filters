@@ -5,6 +5,9 @@
 #include <array>    // Optional
 #include <cstdint>  // Optional
 #include <vector>
+#include <dxgi1_6.h>
+#include <wrl/client.h> // For Microsoft::WRL::ComPtr
+#include <cstdlib>
 
 class Monitor {
     
@@ -111,6 +114,7 @@ class Monitor {
         DeleteDC(hdc);
         return true;
     }
+    
 
 };
 
@@ -138,28 +142,40 @@ int main(){
     std::vector<Monitor> monitors;
     EnumDisplayMonitors(nullptr,nullptr,MonitorEnumProc, reinterpret_cast<LPARAM>(&monitors));
 
-    float red;
-    float green;
-    float blue;
+    bool filterEnabled = false;
+    bool previousPressed = false;
+    
 
-    std::cout << "Input red float value: "; 
-    std::cin >> red;
+    while(true){
+        bool currentKeyPressed = (GetAsyncKeyState(VK_F8) & 0x8000);
 
-    std::cout << "Input green float value: "; 
-    std::cin >> green;
+        if(currentKeyPressed && !previousPressed){
+            if(!filterEnabled){
+                for(int i = 0; i < monitors.size(); i++){
+                    monitors[i].setGamma(1,0,0);
+                }
+                filterEnabled = true;
+                std::cout << "main: Filter enabled\n";
 
-    std::cout << "Input blue float value: "; 
-    std::cin >> blue;
+            }
+            else{
+                for(int i = 0; i < monitors.size(); i++){
+                    monitors[i].restoreGamma();
+                }
+                filterEnabled = false;
+                std::cout << "Filter Disabled\n";
+                
+            }
 
-    for(int i = 0; i < monitors.size(); ++i){
-        monitors[i].setGamma(red,green,blue);
+        }
+        previousPressed = currentKeyPressed;
+
+        Sleep(10);
+        
+
+
     }
-
-    Sleep(5000);
-
-    for(int i = 0; i < monitors.size(); ++i){
-        monitors[i].restoreGamma();
-    }
+    
 
 
 
