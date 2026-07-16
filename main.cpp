@@ -6,9 +6,14 @@
 
 #include "Monitor.h"
 #include "MonitorManager.h"
+#include "ConfigManager.h"
 
 int main()
 {
+
+    ConfigManager manager;
+    manager.createConfigFile();
+
     MonitorManager monitors;
     monitors.initialize();
 

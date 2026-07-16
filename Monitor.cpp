@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <algorithm>
+#include <array>
 
 HDC Monitor::createHDC()
 {
@@ -116,4 +117,28 @@ bool Monitor::restoreGamma()
     std::copy(&tempGamma[0][0], &tempGamma[0][0] + 3 * 256, &currentGamma[0][0]);
     DeleteDC(hdc);
     return true;
+}
+std::array<std::array<WORD, 256>, 3> Monitor::getCurrentGamma()
+{
+    std::array<std::array<WORD, 256>, 3> wordArray;
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 256; j++)
+        {
+            wordArray[i][j] = currentGamma[i][j];
+        }
+    }
+    return wordArray;
+}
+std::array<std::array<WORD, 256>, 3> Monitor::getOriginalGamma()
+{
+    std::array<std::array<WORD, 256>, 3> wordArray;
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 256; j++)
+        {
+            wordArray[i][j] = originalGamma[i][j];
+        }
+    }
+    return wordArray;
 }
