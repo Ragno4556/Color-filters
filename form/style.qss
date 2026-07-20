@@ -1,0 +1,22 @@
+#colorPreviewFrame {
+    border: 1px solid transparent;
+    border-radius: 5px;
+}
+#peekButton {
+    background: transparent;
+    border: none;
+    text-align: left;
+
+}
+#peekButton:hover {
+    text-decoration: underline;
+}
+
+#toggleButton {
+    background: transparent;
+    border: none;
+    text-align: left;
+}
+#toggleButton:hover {
+    text-decoration: underline;
+}

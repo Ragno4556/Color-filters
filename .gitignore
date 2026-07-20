@@ -1,0 +1,42 @@
+# Build directories
+build*/
+debug/
+release/
+
+# Qt Creator
+*.pro.user
+*.pro.user.*
+*.autosave
+
+# Generated files
+Makefile
+Makefile.*
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+
+# Object files
+*.o
+*.obj
+
+# Libraries
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Debug symbols
+*.pdb
+
+# Windows
+*.ilk
+
+# VS Code
+.vscode/
+
+# Logs
+*.log

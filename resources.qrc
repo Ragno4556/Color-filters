@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>resources/Apps-colors-icon_31805.ico</file>
+        <file>form/style.qss</file>
+    </qresource>
+</RCC>
