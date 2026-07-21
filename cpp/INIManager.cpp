@@ -1,219 +1,378 @@
-#include "INIManager.h"
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
 
-#include <QStandardPaths>
-#include <QDir>
+#include <QToolButton>
+#include <QHBoxLayout>
+#include <QSignalBlocker>
+#include <QPushButton>
 #include <QInputDialog>
 
-#include <vector>
-#include <string>
-#include <cstdio>
 #include <iostream>
 
-    //Creates a new .ini and adds it to loadedInis
-    void IniManager::createNewIni(const std::string& fileName){
-
-    //File name error cases
-    if(fileName.empty() || fileName.find_first_not_of(" \t\r\n") == std::string::npos){
-        MessageBox(NULL, L"File name cannot be empty.", L"Invalid FIle Name", MB_OK | MB_ICONINFORMATION);
-        return;
-    }
-    if (fileName.find_first_of("<>:\"/\\|?*") != std::string::npos){
-        MessageBox(nullptr, L"File name contains invalid characters.", L"Invalid File Name", MB_OK | MB_ICONWARNING);
-        return;
-    }
-
-    std::string uniqueName = makeUniqueName(fileName);
-    mINI::INIFile file((profilesDirectory / (uniqueName + ".ini")).string());
-    mINI::INIStructure iniStructure;
-
-    //Create converter
-    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-
-    //Cyrcle through each monitors settings
-    for(Monitor& monitor : monitorManager.getMonitorVector()){
-
-        //Convert wstring t string
-        std::string s = converter.to_bytes(monitor.getDeviceName());
-
-        std::string monitorCategory = "Monitor";
-
-        if(s.size() > 4){
-            monitorCategory = ("Monitor" + s.substr(4));
-        }
-        else{
-            monitorCategory = ("Monitor" + s);
-        }
-
-        //Fill with defaults
-        iniStructure[monitorCategory]["tint"] = "0";
-        iniStructure[monitorCategory]["intensity"] = "0";
-        iniStructure[monitorCategory]["gamma"] = "1";
-        iniStructure[monitorCategory]["filterToggle"] = "true";
-    }
-
-    //Don't update loadedInis until the file is successfully generated
-    if(!file.generate(iniStructure)){
-        std::cerr << "createNewIni(): file.generate failed to create the ini file.\n";
-        return;
-    }
-
-    //Added name and strcuture to loadedInis
-    IniData newIni = {uniqueName, iniStructure};
-    loadedInis.push_back(std::move(newIni));
-}
-
-
-//Creates a new .ini based on a different .ini
-void IniManager::duplicateIni(const std::string& sourceName, const std::string& fileName){
-
-    //File name error cases
-    if(fileName.empty() || fileName.find_first_not_of(" \t\r\n") == std::string::npos){
-        MessageBox(NULL, L"File name cannot be empty.", L"Invalid FIle Name", MB_OK | MB_ICONINFORMATION);
-        return;
-    }
-    if (fileName.find_first_of("<>:\"/\\|?*") != std::string::npos){
-        MessageBox(nullptr, L"File name contains invalid characters.", L"Invalid File Name", MB_OK | MB_ICONWARNING);
-        return;
-    }
-
-    std::string uniqueName = makeUniqueName(fileName);
-
-    //Check if the file actaully exists!
-    if(!std::filesystem::exists((profilesDirectory / (sourceName + ".ini")).string())){
-        std::cerr << "duplicateIni(): Source file does not exist.\n";
-        return;
-    }
-
-    //Find the stored source file and read its ini structure
-    mINI::INIFile sourceFile((profilesDirectory / (sourceName + ".ini")).string());
-    mINI::INIStructure iniStructure;
-
-    //Check if the file was read correctly, could be corrupted or inaccesible
-    if(!sourceFile.read(iniStructure)){
-        std::cerr << "duplicateIni(): Failed to read the source INI file.\n";
-        return;
-    }
-
-    mINI::INIFile newFile((profilesDirectory / (uniqueName + ".ini")).string());
-
-    //Don't update loadedInis until the file is successfully generated
-    if(!newFile.generate(iniStructure)){
-        std::cerr << "duplicateIni(): file.generate failed to create the ini file.\n";
-        return;
-    }
-
-    //Added name and structure to loadedInis
-    IniData newI = {uniqueName, iniStructure};
-    loadedInis.push_back(std::move(newI));
-}
-
-//Initializes INIManager, finds default /Profiles location, reads all .ini files, and adds their name and structure to loadedInis.
-bool IniManager::initialize(){
-    //Finds default /Profiles location
-    QString appData = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QString profiles = appData + "/Profiles";
-
-    //Trys to make path
-    if(!QDir().mkpath(profiles)){
-        std::cerr << "profilesDirectory(): Could not access default profies directory.";
-        return false;
-    }
-
-    profilesDirectory = std::filesystem::path(profiles.toStdString());
-
-    //Fills loadedInis with structures from .ini files from /Profiles
-    loadedInis.clear();
-
-
-    //Check if iterator errors
-    std::error_code error;
-    std::filesystem::directory_iterator iterator(profilesDirectory,error);
-
-    if(error){
-        std::cerr << "IniManager::initialize(): Could not iterate through profiles directory.\n";
-        return false;
-    }
-
-    //Add each .ini
-    for(const auto& entry : iterator){
-
-        //Check if current file is a .ini file
-        if(!entry.is_regular_file() || entry.path().extension() != ".ini"){
-            std::cerr << "IniManager::initialize(): File " + (entry.path().filename()).string() + ", it is not a .ini file.\n";
-            continue;
-        }
-
-        mINI::INIFile file(entry.path());
-        mINI::INIStructure data;
-
-        //Check if readable
-        if(!file.read(data)){
-            std::cerr << "IniManager::initialize(): Failed to read the source INI file.\n";
-            continue;
-        }
-
-        //Add file to loadedInis
-        IniData newI = {entry.path().stem().string(),data};
-        loadedInis.push_back(std::move(newI));
-    }
-    return true;
-}
-
-//Checks if the file name already exists in profile directory, if it does then it creates an alternative by adding a number to the end
-std::string IniManager::makeUniqueName(const std::string& baseName)
+// Initializes the main window and connects the UI
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow), im(mm)
 {
-    //Checks if given name is empty
-    if (baseName.empty())
+
+    ui->setupUi(this);
+
+    // Disable maximizing
+    setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
+
+    // Initialize managers
+    mm.initialize();
+    im.initialize();
+
+    // Check if any monitors were found
+    if (mm.getMonitorVector().empty())
     {
-        std::cerr << "makeUniqueName(): baseName was empty, returning ""\n";
-        return "";
+        currentMonitorIndex = -1;
+        ui->monitorSelector->setEnabled(false);
     }
+    else
+    {
+        currentMonitorIndex = 0;
 
-    namespace fs = std::filesystem;
+        // Fill monitor selector
+        for (const Monitor &monitor : mm.getMonitorVector())
+        {
+            std::wstring deviceName = monitor.getDeviceName();
 
-    //Checks if the filename already exits, if it doesn't, baseName is good to go
-    if (!fs::exists(profilesDirectory / (baseName + ".ini"))){
-        return baseName;
-    }
+            // Remove DISPLAY prefix
+            if (deviceName.size() > 4)
+            {
+                deviceName = deviceName.substr(4);
+            }
 
-
-    //Else it adds a number to the end
-    int number = 1;
-
-    while (true){
-        std::string candidate = baseName + " (" + std::to_string(number) + ")";
-
-        if (!fs::exists(profilesDirectory / (candidate + ".ini"))){
-            return candidate;
+            ui->monitorSelector->addItem(QString::fromStdWString(deviceName));
         }
 
-        ++number;
+        ui->monitorSelector->setCurrentIndex(currentMonitorIndex);
     }
+
+    // Fill INI selector
+    updateINIS();
+
+    // Load the active monitor settings
+    if (currentMonitorIndex >= 0)
+    {
+        loadActiveSettingsIntoSliders();
+        applyActiveSettings();
+    }
+
+    updateColorPreview();
+
+    // Put reset button in the top right of the tab selector
+    QWidget *container = new QWidget(ui->tabSelector);
+    QHBoxLayout *layout = new QHBoxLayout(container);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(0);
+    layout->addWidget(ui->resetButton);
+    container->setLayout(layout);
+    container->adjustSize();
+    ui->tabSelector->setCornerWidget(container, Qt::TopRightCorner);
+
+    // Button signals
+    connect(ui->resetButton, &QPushButton::clicked, this, &MainWindow::resetButtonClicked);
+    connect(ui->newIniButton, &QPushButton::clicked, this, &MainWindow::newProfile);
+    connect(ui->duplicateIniButton, &QPushButton::clicked, this, &MainWindow::duplicateINIS);
+    connect(ui->deleteIniButton, &QPushButton::clicked, this, &MainWindow::deleteINI);
+
+    // Slider signals
+    connect(ui->tintSlider, &QSlider::valueChanged, this, &MainWindow::onSliderMoved);
+    connect(ui->intensitySlider, &QSlider::valueChanged, this, &MainWindow::onSliderMoved);
+    connect(ui->gammaSlider, &QSlider::valueChanged, this, &MainWindow::onSliderMoved);
+
+    // Checkbox signals
+    connect(ui->globalToggle, &QCheckBox::toggled, this, &MainWindow::onGlobalToggle);
+    connect(ui->filterToggle, &QCheckBox::toggled, this, &MainWindow::onFilterToggle);
+
+    // Combo box signals
+    connect(ui->monitorSelector, &QComboBox::currentIndexChanged, this, &MainWindow::onMonitorChanged);
 }
 
+// Restores the original monitor colors before closing
+MainWindow::~MainWindow()
+{
+    mm.restoreAllGammaRamps();
+    delete ui;
+}
 
-//Deletes .ini from loadedInis and files
-void IniManager::deleteIni(const std::string& fileName){
+// Loads the active monitor settings into the UI
+void MainWindow::loadActiveSettingsIntoSliders()
+{
 
-    //Check if able to remove the file
-    if(!std::filesystem::remove(std::filesystem::path(profilesDirectory / (fileName + ".ini")))){
-        std::cerr << "deleteIni(): Failed to remove file from the file system\n";
+    // Check if the current monitor exists
+    if (!hasValidMonitor())
+    {
         return;
     }
 
-    //Remove ini data from loadedInis
-    for(size_t i = 0; i<loadedInis.size(); i++){
-        if((loadedInis[i].iniFilename) == fileName){
-            loadedInis.erase(loadedInis.begin() + i);
-            return;
+    // Prevent signals while changing UI values
+    QSignalBlocker tintBlocker(ui->tintSlider);
+    QSignalBlocker intensityBlocker(ui->intensitySlider);
+    QSignalBlocker gammaBlocker(ui->gammaSlider);
+    QSignalBlocker filterBlocker(ui->filterToggle);
+
+    const FilterSettings &settings = mm.getMonitor(currentMonitorIndex).getFilterSettings();
+
+    ui->tintSlider->setValue(static_cast<int>(settings.tint));
+    ui->intensitySlider->setValue(static_cast<int>(settings.intensity * 100.0f));
+    ui->gammaSlider->setValue(static_cast<int>(settings.gamma * 100.0f));
+    ui->filterToggle->setChecked(settings.enabled);
+}
+
+// Saves the UI values to the active monitor settings
+void MainWindow::saveActiveSettingsFromSliders()
+{
+
+    // Check if the current monitor exists
+    if (!hasValidMonitor())
+    {
+        return;
+    }
+
+    FilterSettings settings{
+        static_cast<float>(ui->tintSlider->value()),
+        static_cast<float>(ui->intensitySlider->value()) / 100.0f,
+        static_cast<float>(ui->gammaSlider->value()) / 100.0f,
+        ui->filterToggle->isChecked()};
+
+    // Apply settings to every monitor
+    if (ui->globalToggle->isChecked())
+    {
+        for (Monitor &monitor : mm.getMonitorVector())
+        {
+            monitor.setFilterSettings(settings);
+        }
+    }
+    else
+    {
+        mm.getMonitor(currentMonitorIndex).setFilterSettings(settings);
+    }
+}
+
+// Applies the saved filter settings to the monitors
+void MainWindow::applyActiveSettings()
+{
+
+    // Check if the current monitor exists
+    if (!hasValidMonitor())
+    {
+        return;
+    }
+
+    // Apply settings to every monitor
+    if (ui->globalToggle->isChecked())
+    {
+        ui->resetButton->setText("Reset All");
+        ui->monitorSelector->setEnabled(false);
+
+        for (Monitor &monitor : mm.getMonitorVector())
+        {
+            if (monitor.getFilterSettings().enabled)
+            {
+                monitor.applyFilter();
+            }
+            else
+            {
+                monitor.restoreGammaRamp();
+            }
+        }
+    }
+    else
+    {
+        ui->resetButton->setText("Reset " + QString::number(currentMonitorIndex + 1));
+        ui->monitorSelector->setEnabled(true);
+
+        Monitor &monitor = mm.getMonitor(currentMonitorIndex);
+
+        if (monitor.getFilterSettings().enabled)
+        {
+            monitor.applyFilter();
+        }
+        else
+        {
+            monitor.restoreGammaRamp();
         }
     }
 }
 
-std::vector<IniData>& IniManager::getLoadedInis(){
-    return loadedInis;
+// Loads the settings for the newly selected monitor
+void MainWindow::onMonitorChanged(int index)
+{
+
+    // Check if the selected monitor exists
+    if (index < 0 || index >= static_cast<int>(mm.getMonitorVector().size()))
+    {
+        return;
+    }
+
+    currentMonitorIndex = index;
+    loadActiveSettingsIntoSliders();
+    applyActiveSettings();
 }
 
-const std::vector<IniData>& IniManager::getLoadedInis() const{
-    return loadedInis;
+// Saves and applies settings when a slider moves
+void MainWindow::onSliderMoved()
+{
+    updateColorPreview();
+    saveActiveSettingsFromSliders();
+    applyActiveSettings();
+}
+
+// Resets the active filter settings to their defaults
+void MainWindow::resetButtonClicked()
+{
+
+    // Check if the current monitor exists
+    if (!hasValidMonitor())
+    {
+        return;
+    }
+
+    FilterSettings settings{};
+
+    // Reset every monitor
+    if (ui->globalToggle->isChecked())
+    {
+        settings.enabled = mm.getMonitor(currentMonitorIndex).getFilterSettings().enabled;
+
+        for (Monitor &monitor : mm.getMonitorVector())
+        {
+            monitor.setFilterSettings(settings);
+        }
+    }
+    else
+    {
+        Monitor &monitor = mm.getMonitor(currentMonitorIndex);
+        settings.enabled = monitor.getFilterSettings().enabled;
+        monitor.setFilterSettings(settings);
+    }
+
+    loadActiveSettingsIntoSliders();
+    applyActiveSettings();
+}
+
+// Enables or disables global monitor settings
+void MainWindow::onGlobalToggle()
+{
+
+    // Check if the current monitor exists
+    if (!hasValidMonitor())
+    {
+        return;
+    }
+
+    // Copy the current settings to every monitor
+    if (ui->globalToggle->isChecked())
+    {
+        FilterSettings settings = mm.getMonitor(currentMonitorIndex).getFilterSettings();
+
+        for (Monitor &monitor : mm.getMonitorVector())
+        {
+            monitor.setFilterSettings(settings);
+        }
+    }
+
+    loadActiveSettingsIntoSliders();
+    applyActiveSettings();
+}
+
+// Enables or disables the current filter
+void MainWindow::onFilterToggle()
+{
+    saveActiveSettingsFromSliders();
+    applyActiveSettings();
+}
+
+// Updates the color preview using the tint slider
+void MainWindow::updateColorPreview()
+{
+    int hue = ui->tintSlider->value();
+
+    // Qt uses hue values from 0 to 359
+    if (hue == 360)
+    {
+        hue = 0;
+    }
+
+    previewColor.setHsv(hue, 255, 255);
+    ui->colorPreviewFrame->setStyleSheet(QString("background-color: %1;").arg(previewColor.name()));
+}
+
+// Creates a new INI profile
+void MainWindow::newProfile()
+{
+    bool ok;
+    QString fileName = QInputDialog::getText(this, "New Profile", "Profile name:", QLineEdit::Normal, "", &ok);
+
+    // Return if the dialog was canceled
+    if (!ok)
+    {
+        return;
+    }
+
+    im.createNewIni(fileName.toStdString());
+    updateINIS();
+}
+
+// Updates the INI profile selector
+void MainWindow::updateINIS()
+{
+    ui->iniSelector->clear();
+
+    for (IniData &ini : im.getLoadedInis())
+    {
+        std::string &filename = ini.iniFilename;
+        ui->iniSelector->addItem(QString::fromStdString(filename));
+    }
+}
+
+// Creates a copy of the selected INI profile
+void MainWindow::duplicateINIS()
+{
+
+    // Check if a profile is selected
+    if (ui->iniSelector->currentIndex() < 0)
+    {
+        return;
+    }
+
+    std::string sourceName = ui->iniSelector->currentText().toStdString();
+    bool ok;
+    QString fileName = QInputDialog::getText(this, "New Profile", "Profile name:", QLineEdit::Normal, "", &ok);
+
+    // Return if the dialog was canceled
+    if (!ok)
+    {
+        return;
+    }
+
+    im.duplicateIni(sourceName, fileName.toStdString());
+    updateINIS();
+}
+
+// Deletes the selected INI profile
+void MainWindow::deleteINI()
+{
+
+    // Check if a profile is selected
+    if (ui->iniSelector->currentIndex() < 0)
+    {
+        return;
+    }
+
+    std::string fileName = ui->iniSelector->currentText().toStdString();
+
+    if (!fileName.empty())
+    {
+        im.deleteIni(fileName);
+        ui->iniSelector->removeItem(ui->iniSelector->currentIndex());
+    }
+}
+
+// Checks if the current monitor index is valid
+bool MainWindow::hasValidMonitor() const
+{
+    return currentMonitorIndex >= 0 && currentMonitorIndex < static_cast<int>(mm.getMonitorVector().size());
 }

@@ -1,19 +1,15 @@
 #pragma once
 
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
-
 #include <QMainWindow>
+
 #include "MonitorManager.h"
 #include "ColorController.h"
 #include "INIManager.h"
 
-class otherClass;
-
-
 QT_BEGIN_NAMESPACE
-namespace Ui {
-class MainWindow;
+namespace Ui
+{
+    class MainWindow;
 }
 QT_END_NAMESPACE
 
@@ -22,7 +18,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MonitorManager& getMonitorManager() {return mm;}
+    MonitorManager &getMonitorManager() { return mm; }
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
 
@@ -34,29 +30,30 @@ private:
     MonitorManager mm;
     IniManager im;
 
-
-
 private slots:
-    void loadActiveSettingsIntoSliders();
-    void saveActiveSettingsFromSliders();
-    void applyActiveSettings();
-    void onMonitorChanged(int index);
+
+    // Sliders
     void onSliderMoved();
+
+    // Buttons
     void resetButtonClicked();
+
+    // Toggles
     void onGlobalToggle();
     void onFilterToggle();
-    void updateColorPreview();
+
+    // Ini
+    void loadActiveSettingsIntoSliders();
+    void saveActiveSettingsFromSliders();
     void newProfile();
     void updateINIS();
     void duplicateINIS();
     void deleteINI();
 
+    // Monitors
+    void onMonitorChanged(int index);
+    void applyActiveSettings();
 
-
-
-
+    // Colors
+    void updateColorPreview();
 };
-
-
-
-#endif // MAINWINDOW_H

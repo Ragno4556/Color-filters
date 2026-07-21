@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Build directories
 build*/
 debug/
@@ -49,4 +48,3 @@ ui_*.h
 .vscode/
 
 build/
->>>>>>> 2f7411bea28bb036cbcc8b6fe3fb88c98de0982f
