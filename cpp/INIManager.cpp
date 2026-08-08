@@ -1,378 +1,537 @@
-#include "mainwindow.h"
-#include "ui_mainwindow.h"
+#include "INIManager.h"
 
-#include <QToolButton>
-#include <QHBoxLayout>
-#include <QSignalBlocker>
-#include <QPushButton>
-#include <QInputDialog>
+#include <QDir>
+#include <QStandardPaths>
 
+#include <algorithm>
+#include <cctype>
 #include <iostream>
+#include <sstream>
+#include <utility>
 
-// Initializes the main window and connects the UI
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow), im(mm)
+namespace
 {
+std::string monitorSectionName(const Monitor &monitor)
+{
+    const std::string deviceName = QString::fromStdWString(monitor.getDeviceName()).toUtf8().toStdString();
 
-    ui->setupUi(this);
-
-    // Disable maximizing
-    setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
-
-    // Initialize managers
-    mm.initialize();
-    im.initialize();
-
-    // Check if any monitors were found
-    if (mm.getMonitorVector().empty())
+    if (deviceName.size() > 4)
     {
-        currentMonitorIndex = -1;
-        ui->monitorSelector->setEnabled(false);
+        return "Monitor" + deviceName.substr(4);
     }
-    else
+
+    return "Monitor" + deviceName;
+}
+
+bool parseBool(const std::string &text, bool &value)
+{
+    std::istringstream stream(text);
+    stream >> std::boolalpha >> value;
+    stream >> std::ws;
+    return !stream.fail() && stream.eof();
+}
+
+bool parseInt(const std::string &text, int &value)
+{
+    try
     {
-        currentMonitorIndex = 0;
+        std::size_t parsedCharacters = 0;
+        value = std::stoi(text, &parsedCharacters);
+        return parsedCharacters == text.size();
+    }
+    catch (const std::exception &)
+    {
+        return false;
+    }
+}
 
-        // Fill monitor selector
-        for (const Monitor &monitor : mm.getMonitorVector())
+bool parseFloat(const std::string &text, float &value)
+{
+    try
+    {
+        std::size_t parsedCharacters = 0;
+        value = std::stof(text, &parsedCharacters);
+        return parsedCharacters == text.size();
+    }
+    catch (const std::exception &)
+    {
+        return false;
+    }
+}
+
+bool readProfileSettings(const std::filesystem::path &path, const std::vector<Monitor> &monitors, std::vector<FilterSettings> &settings)
+{
+    mINI::INIFile file(path);
+    mINI::INIStructure ini;
+
+    if (!file.read(ini))
+    {
+        return false;
+    }
+
+    settings.clear();
+    settings.reserve(monitors.size());
+
+    for (const Monitor &monitor : monitors)
+    {
+        const std::string section = monitorSectionName(monitor);
+        FilterSettings filterSettings;
+
+        const bool valid = parseFloat(ini.get(section).get("tint"), filterSettings.tint) &&
+                           parseFloat(ini.get(section).get("intensity"), filterSettings.intensity) &&
+                           parseFloat(ini.get(section).get("gamma"), filterSettings.gamma) &&
+                           parseBool(ini.get(section).get("filterToggle"), filterSettings.enabled) && filterSettings.tint >= 0.0f &&
+                           filterSettings.tint < 360.0f && filterSettings.intensity >= 0.0f && filterSettings.intensity <= 1.0f && filterSettings.gamma > 0.0f;
+
+        if (!valid)
         {
-            std::wstring deviceName = monitor.getDeviceName();
-
-            // Remove DISPLAY prefix
-            if (deviceName.size() > 4)
-            {
-                deviceName = deviceName.substr(4);
-            }
-
-            ui->monitorSelector->addItem(QString::fromStdWString(deviceName));
+            return false;
         }
 
-        ui->monitorSelector->setCurrentIndex(currentMonitorIndex);
+        settings.push_back(filterSettings);
     }
 
-    // Fill INI selector
-    updateINIS();
-
-    // Load the active monitor settings
-    if (currentMonitorIndex >= 0)
-    {
-        loadActiveSettingsIntoSliders();
-        applyActiveSettings();
-    }
-
-    updateColorPreview();
-
-    // Put reset button in the top right of the tab selector
-    QWidget *container = new QWidget(ui->tabSelector);
-    QHBoxLayout *layout = new QHBoxLayout(container);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(0);
-    layout->addWidget(ui->resetButton);
-    container->setLayout(layout);
-    container->adjustSize();
-    ui->tabSelector->setCornerWidget(container, Qt::TopRightCorner);
-
-    // Button signals
-    connect(ui->resetButton, &QPushButton::clicked, this, &MainWindow::resetButtonClicked);
-    connect(ui->newIniButton, &QPushButton::clicked, this, &MainWindow::newProfile);
-    connect(ui->duplicateIniButton, &QPushButton::clicked, this, &MainWindow::duplicateINIS);
-    connect(ui->deleteIniButton, &QPushButton::clicked, this, &MainWindow::deleteINI);
-
-    // Slider signals
-    connect(ui->tintSlider, &QSlider::valueChanged, this, &MainWindow::onSliderMoved);
-    connect(ui->intensitySlider, &QSlider::valueChanged, this, &MainWindow::onSliderMoved);
-    connect(ui->gammaSlider, &QSlider::valueChanged, this, &MainWindow::onSliderMoved);
-
-    // Checkbox signals
-    connect(ui->globalToggle, &QCheckBox::toggled, this, &MainWindow::onGlobalToggle);
-    connect(ui->filterToggle, &QCheckBox::toggled, this, &MainWindow::onFilterToggle);
-
-    // Combo box signals
-    connect(ui->monitorSelector, &QComboBox::currentIndexChanged, this, &MainWindow::onMonitorChanged);
+    return true;
 }
 
-// Restores the original monitor colors before closing
-MainWindow::~MainWindow()
+bool loadHotkey(const mINI::INIStructure &ini, const std::string &prefix, QVector<int> &hotkey)
 {
-    mm.restoreAllGammaRamps();
-    delete ui;
-}
+    QVector<int> loadedKeys;
 
-// Loads the active monitor settings into the UI
-void MainWindow::loadActiveSettingsIntoSliders()
-{
-
-    // Check if the current monitor exists
-    if (!hasValidMonitor())
+    for (int index = 0; index < 32; ++index)
     {
-        return;
-    }
+        const std::string value = ini.get("Settings").get(prefix + std::to_string(index));
 
-    // Prevent signals while changing UI values
-    QSignalBlocker tintBlocker(ui->tintSlider);
-    QSignalBlocker intensityBlocker(ui->intensitySlider);
-    QSignalBlocker gammaBlocker(ui->gammaSlider);
-    QSignalBlocker filterBlocker(ui->filterToggle);
-
-    const FilterSettings &settings = mm.getMonitor(currentMonitorIndex).getFilterSettings();
-
-    ui->tintSlider->setValue(static_cast<int>(settings.tint));
-    ui->intensitySlider->setValue(static_cast<int>(settings.intensity * 100.0f));
-    ui->gammaSlider->setValue(static_cast<int>(settings.gamma * 100.0f));
-    ui->filterToggle->setChecked(settings.enabled);
-}
-
-// Saves the UI values to the active monitor settings
-void MainWindow::saveActiveSettingsFromSliders()
-{
-
-    // Check if the current monitor exists
-    if (!hasValidMonitor())
-    {
-        return;
-    }
-
-    FilterSettings settings{
-        static_cast<float>(ui->tintSlider->value()),
-        static_cast<float>(ui->intensitySlider->value()) / 100.0f,
-        static_cast<float>(ui->gammaSlider->value()) / 100.0f,
-        ui->filterToggle->isChecked()};
-
-    // Apply settings to every monitor
-    if (ui->globalToggle->isChecked())
-    {
-        for (Monitor &monitor : mm.getMonitorVector())
+        if (value.empty())
         {
-            monitor.setFilterSettings(settings);
+            break;
         }
-    }
-    else
-    {
-        mm.getMonitor(currentMonitorIndex).setFilterSettings(settings);
-    }
-}
 
-// Applies the saved filter settings to the monitors
-void MainWindow::applyActiveSettings()
-{
-
-    // Check if the current monitor exists
-    if (!hasValidMonitor())
-    {
-        return;
-    }
-
-    // Apply settings to every monitor
-    if (ui->globalToggle->isChecked())
-    {
-        ui->resetButton->setText("Reset All");
-        ui->monitorSelector->setEnabled(false);
-
-        for (Monitor &monitor : mm.getMonitorVector())
+        int key = 0;
+        if (!parseInt(value, key))
         {
-            if (monitor.getFilterSettings().enabled)
-            {
-                monitor.applyFilter();
-            }
-            else
-            {
-                monitor.restoreGammaRamp();
-            }
+            return false;
         }
-    }
-    else
-    {
-        ui->resetButton->setText("Reset " + QString::number(currentMonitorIndex + 1));
-        ui->monitorSelector->setEnabled(true);
 
-        Monitor &monitor = mm.getMonitor(currentMonitorIndex);
-
-        if (monitor.getFilterSettings().enabled)
+        if (!loadedKeys.contains(key))
         {
-            monitor.applyFilter();
-        }
-        else
-        {
-            monitor.restoreGammaRamp();
-        }
-    }
-}
-
-// Loads the settings for the newly selected monitor
-void MainWindow::onMonitorChanged(int index)
-{
-
-    // Check if the selected monitor exists
-    if (index < 0 || index >= static_cast<int>(mm.getMonitorVector().size()))
-    {
-        return;
-    }
-
-    currentMonitorIndex = index;
-    loadActiveSettingsIntoSliders();
-    applyActiveSettings();
-}
-
-// Saves and applies settings when a slider moves
-void MainWindow::onSliderMoved()
-{
-    updateColorPreview();
-    saveActiveSettingsFromSliders();
-    applyActiveSettings();
-}
-
-// Resets the active filter settings to their defaults
-void MainWindow::resetButtonClicked()
-{
-
-    // Check if the current monitor exists
-    if (!hasValidMonitor())
-    {
-        return;
-    }
-
-    FilterSettings settings{};
-
-    // Reset every monitor
-    if (ui->globalToggle->isChecked())
-    {
-        settings.enabled = mm.getMonitor(currentMonitorIndex).getFilterSettings().enabled;
-
-        for (Monitor &monitor : mm.getMonitorVector())
-        {
-            monitor.setFilterSettings(settings);
-        }
-    }
-    else
-    {
-        Monitor &monitor = mm.getMonitor(currentMonitorIndex);
-        settings.enabled = monitor.getFilterSettings().enabled;
-        monitor.setFilterSettings(settings);
-    }
-
-    loadActiveSettingsIntoSliders();
-    applyActiveSettings();
-}
-
-// Enables or disables global monitor settings
-void MainWindow::onGlobalToggle()
-{
-
-    // Check if the current monitor exists
-    if (!hasValidMonitor())
-    {
-        return;
-    }
-
-    // Copy the current settings to every monitor
-    if (ui->globalToggle->isChecked())
-    {
-        FilterSettings settings = mm.getMonitor(currentMonitorIndex).getFilterSettings();
-
-        for (Monitor &monitor : mm.getMonitorVector())
-        {
-            monitor.setFilterSettings(settings);
+            loadedKeys.append(key);
         }
     }
 
-    loadActiveSettingsIntoSliders();
-    applyActiveSettings();
-}
-
-// Enables or disables the current filter
-void MainWindow::onFilterToggle()
-{
-    saveActiveSettingsFromSliders();
-    applyActiveSettings();
-}
-
-// Updates the color preview using the tint slider
-void MainWindow::updateColorPreview()
-{
-    int hue = ui->tintSlider->value();
-
-    // Qt uses hue values from 0 to 359
-    if (hue == 360)
+    if (!loadedKeys.empty())
     {
-        hue = 0;
+        hotkey = std::move(loadedKeys);
     }
 
-    previewColor.setHsv(hue, 255, 255);
-    ui->colorPreviewFrame->setStyleSheet(QString("background-color: %1;").arg(previewColor.name()));
+    return true;
+}
 }
 
-// Creates a new INI profile
-void MainWindow::newProfile()
-{
-    bool ok;
-    QString fileName = QInputDialog::getText(this, "New Profile", "Profile name:", QLineEdit::Normal, "", &ok);
+IniManager::IniManager(MonitorManager &monitorManager) : monitorManager(monitorManager) {}
 
-    // Return if the dialog was canceled
-    if (!ok)
+bool IniManager::initialize()
+{
+    const QString appData = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    const QString profilesPath = appData + "/Profiles";
+    const QString globalPath = appData + "/GlobalSettings";
+
+    if (!QDir().mkpath(profilesPath) || !QDir().mkpath(globalPath))
     {
-        return;
+        std::cerr << "IniManager::initialize: Could not create settings folders.\n";
+        return false;
     }
 
-    im.createNewIni(fileName.toStdString());
-    updateINIS();
+    profileDirectory = std::filesystem::path(profilesPath.toStdWString());
+    globalSettingsFile = std::filesystem::path(globalPath.toStdWString()) / "GlobalSettings.ini";
+
+    std::error_code fileError;
+    const bool globalSettingsExist = std::filesystem::exists(globalSettingsFile, fileError);
+
+    if (fileError)
+    {
+        std::cerr << "IniManager::initialize: Could not inspect global settings.\n";
+        return false;
+    }
+
+    if (globalSettingsExist)
+    {
+        if (!loadGlobalSettings())
+        {
+            return false;
+        }
+    }
+
+    if (!loadProfiles())
+    {
+        return false;
+    }
+
+    if (loadedProfiles.empty())
+    {
+        return createProfile("defaultIni");
+    }
+
+    const bool currentProfileExists = std::find(loadedProfiles.cbegin(), loadedProfiles.cend(), settings.currentProfile) != loadedProfiles.cend();
+
+    if (!currentProfileExists)
+    {
+        settings.currentProfile = loadedProfiles.front();
+    }
+
+    return saveGlobalSettings();
 }
 
-// Updates the INI profile selector
-void MainWindow::updateINIS()
+bool IniManager::createProfile(const std::string &name)
 {
-    ui->iniSelector->clear();
-
-    for (IniData &ini : im.getLoadedInis())
+    if (!isValidProfileName(name))
     {
-        std::string &filename = ini.iniFilename;
-        ui->iniSelector->addItem(QString::fromStdString(filename));
+        std::cerr << "IniManager::createProfile: Invalid profile name.\n";
+        return false;
     }
+
+    const std::string uniqueName = makeUniqueProfileName(name);
+    const std::filesystem::path path = profileDirectory / (uniqueName + ".ini");
+
+    mINI::INIFile file(path);
+    mINI::INIStructure ini;
+
+    for (const Monitor &monitor : monitorManager.getMonitorVector())
+    {
+        const std::string section = monitorSectionName(monitor);
+        ini[section]["tint"] = "0";
+        ini[section]["intensity"] = "0";
+        ini[section]["gamma"] = "1";
+        ini[section]["filterToggle"] = "true";
+    }
+
+    if (!file.generate(ini))
+    {
+        std::cerr << "IniManager::createProfile: Could not create profile.\n";
+        return false;
+    }
+
+    loadedProfiles.push_back(uniqueName);
+    settings.currentProfile = uniqueName;
+
+    if (saveGlobalSettings())
+    {
+        return true;
+    }
+
+    loadedProfiles.pop_back();
+    std::error_code error;
+    std::filesystem::remove(path, error);
+    return false;
 }
 
-// Creates a copy of the selected INI profile
-void MainWindow::duplicateINIS()
+bool IniManager::duplicateProfile(const std::string &sourceName, const std::string &newName)
 {
-
-    // Check if a profile is selected
-    if (ui->iniSelector->currentIndex() < 0)
+    if (!isValidProfileName(newName))
     {
-        return;
+        std::cerr << "IniManager::duplicateProfile: Invalid profile name.\n";
+        return false;
     }
 
-    std::string sourceName = ui->iniSelector->currentText().toStdString();
-    bool ok;
-    QString fileName = QInputDialog::getText(this, "New Profile", "Profile name:", QLineEdit::Normal, "", &ok);
+    const std::filesystem::path sourcePath = profileDirectory / (sourceName + ".ini");
 
-    // Return if the dialog was canceled
-    if (!ok)
+    std::error_code error;
+    if (!std::filesystem::is_regular_file(sourcePath, error) || error)
     {
-        return;
+        std::cerr << "IniManager::duplicateProfile: Source profile is missing.\n";
+        return false;
     }
 
-    im.duplicateIni(sourceName, fileName.toStdString());
-    updateINIS();
+    const std::string uniqueName = makeUniqueProfileName(newName);
+    const std::filesystem::path destination = profileDirectory / (uniqueName + ".ini");
+
+    std::filesystem::copy_file(sourcePath, destination, error);
+
+    if (error)
+    {
+        std::cerr << "IniManager::duplicateProfile: " << error.message() << '\n';
+        return false;
+    }
+
+    loadedProfiles.push_back(uniqueName);
+    settings.currentProfile = uniqueName;
+
+    if (!saveGlobalSettings())
+    {
+        loadedProfiles.pop_back();
+        std::filesystem::remove(destination, error);
+        return false;
+    }
+
+    return true;
 }
 
-// Deletes the selected INI profile
-void MainWindow::deleteINI()
+bool IniManager::deleteProfile(const std::string &name)
 {
+    const auto profile = std::find(loadedProfiles.begin(), loadedProfiles.end(), name);
 
-    // Check if a profile is selected
-    if (ui->iniSelector->currentIndex() < 0)
+    if (profile == loadedProfiles.end())
     {
-        return;
+        return false;
     }
 
-    std::string fileName = ui->iniSelector->currentText().toStdString();
+    std::error_code error;
+    const std::filesystem::path path = profileDirectory / (name + ".ini");
 
-    if (!fileName.empty())
+    if (!std::filesystem::remove(path, error))
     {
-        im.deleteIni(fileName);
-        ui->iniSelector->removeItem(ui->iniSelector->currentIndex());
+        std::cerr << "IniManager::deleteProfile: Could not delete profile.\n";
+        return false;
     }
+
+    loadedProfiles.erase(profile);
+
+    if (loadedProfiles.empty())
+    {
+        return createProfile("defaultIni");
+    }
+
+    if (settings.currentProfile == name)
+    {
+        settings.currentProfile = loadedProfiles.front();
+    }
+
+    return saveGlobalSettings();
 }
 
-// Checks if the current monitor index is valid
-bool MainWindow::hasValidMonitor() const
+bool IniManager::importProfile(const std::filesystem::path &sourcePath)
 {
-    return currentMonitorIndex >= 0 && currentMonitorIndex < static_cast<int>(mm.getMonitorVector().size());
+    std::string extension = sourcePath.extension().string();
+    std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char character) { return static_cast<char>(std::tolower(character)); });
+
+    std::error_code error;
+    if (extension != ".ini" || !std::filesystem::is_regular_file(sourcePath, error) || error)
+    {
+        std::cerr << "IniManager::importProfile: Select a valid INI file.\n";
+        return false;
+    }
+
+    std::vector<FilterSettings> importedSettings;
+    if (!readProfileSettings(sourcePath, monitorManager.getMonitorVector(), importedSettings))
+    {
+        std::cerr << "IniManager::importProfile: Profile data is invalid.\n";
+        return false;
+    }
+
+    const std::string uniqueName = makeUniqueProfileName(sourcePath.stem().string());
+    const std::filesystem::path destination = profileDirectory / (uniqueName + ".ini");
+
+    std::filesystem::copy_file(sourcePath, destination, error);
+
+    if (error)
+    {
+        std::cerr << "IniManager::importProfile: " << error.message() << '\n';
+        return false;
+    }
+
+    loadedProfiles.push_back(uniqueName);
+    settings.currentProfile = uniqueName;
+
+    if (!saveGlobalSettings())
+    {
+        loadedProfiles.pop_back();
+        std::filesystem::remove(destination, error);
+        return false;
+    }
+
+    return true;
+}
+
+bool IniManager::loadProfile(const std::string &name)
+{
+    std::vector<FilterSettings> profileSettings;
+    const std::filesystem::path path = profileDirectory / (name + ".ini");
+
+    if (!readProfileSettings(path, monitorManager.getMonitorVector(), profileSettings))
+    {
+        std::cerr << "IniManager::loadProfile: Could not read " << name << ".ini\n";
+        return false;
+    }
+
+    std::vector<Monitor> &monitors = monitorManager.getMonitorVector();
+
+    for (std::size_t index = 0; index < monitors.size(); ++index)
+    {
+        monitors[index].getFilterSettings() = profileSettings[index];
+    }
+
+    return true;
+}
+
+bool IniManager::saveProfile(const std::string &name) const
+{
+    if (name.empty())
+    {
+        return false;
+    }
+
+    mINI::INIFile file(profileDirectory / (name + ".ini"));
+    mINI::INIStructure ini;
+
+    for (const Monitor &monitor : monitorManager.getMonitorVector())
+    {
+        const FilterSettings &filterSettings = monitor.getFilterSettings();
+        const std::string section = monitorSectionName(monitor);
+
+        ini[section]["tint"] = std::to_string(filterSettings.tint);
+        ini[section]["intensity"] = std::to_string(filterSettings.intensity);
+        ini[section]["gamma"] = std::to_string(filterSettings.gamma);
+        ini[section]["filterToggle"] = filterSettings.enabled ? "true" : "false";
+    }
+
+    if (!file.write(ini))
+    {
+        std::cerr << "IniManager::saveProfile: Could not save " << name << ".ini\n";
+        return false;
+    }
+
+    return true;
+}
+
+bool IniManager::saveGlobalSettings() const
+{
+    mINI::INIFile file(globalSettingsFile);
+    mINI::INIStructure ini;
+
+    ini["Settings"]["exitToTaskbar"] = settings.exitToTaskbar ? "true" : "false";
+    ini["Settings"]["runAtStartup"] = settings.runAtStartup ? "true" : "false";
+    ini["Settings"]["currentIni"] = settings.currentProfile;
+
+    for (qsizetype index = 0; index < settings.toggleFilterHotkey.size(); ++index)
+    {
+        ini["Settings"]["toggleFilterHotkey" + std::to_string(index)] = std::to_string(settings.toggleFilterHotkey[index]);
+    }
+
+    for (qsizetype index = 0; index < settings.peekHotkey.size(); ++index)
+    {
+        ini["Settings"]["peekHotkey" + std::to_string(index)] = std::to_string(settings.peekHotkey[index]);
+    }
+
+    if (!file.write(ini))
+    {
+        std::cerr << "IniManager::saveGlobalSettings: Could not save settings.\n";
+        return false;
+    }
+
+    return true;
+}
+
+const std::vector<std::string> &IniManager::profiles() const
+{
+    return loadedProfiles;
+}
+
+const std::filesystem::path &IniManager::profilesDirectory() const
+{
+    return profileDirectory;
+}
+
+GlobalSettings &IniManager::globalSettings()
+{
+    return settings;
+}
+
+const GlobalSettings &IniManager::globalSettings() const
+{
+    return settings;
+}
+
+bool IniManager::loadProfiles()
+{
+    loadedProfiles.clear();
+
+    std::error_code error;
+    std::filesystem::directory_iterator iterator(profileDirectory, error);
+    const std::filesystem::directory_iterator end;
+
+    if (error)
+    {
+        std::cerr << "IniManager::loadProfiles: Could not open profile folder.\n";
+        return false;
+    }
+
+    while (iterator != end)
+    {
+        const std::filesystem::directory_entry &entry = *iterator;
+        std::error_code entryError;
+
+        if (entry.is_regular_file(entryError) && !entryError && entry.path().extension() == ".ini")
+        {
+            loadedProfiles.push_back(entry.path().stem().string());
+        }
+
+        iterator.increment(error);
+        if (error)
+        {
+            std::cerr << "IniManager::loadProfiles: Could not continue reading the profile folder.\n";
+            return false;
+        }
+    }
+
+    std::sort(loadedProfiles.begin(), loadedProfiles.end());
+    return true;
+}
+
+bool IniManager::loadGlobalSettings()
+{
+    mINI::INIFile file(globalSettingsFile);
+    mINI::INIStructure ini;
+
+    if (!file.read(ini))
+    {
+        std::cerr << "IniManager::loadGlobalSettings: Could not read settings.\n";
+        return false;
+    }
+
+    bool exitToTaskbar = false;
+    bool runAtStartup = false;
+
+    if (!parseBool(ini.get("Settings").get("exitToTaskbar"), exitToTaskbar) || !parseBool(ini.get("Settings").get("runAtStartup"), runAtStartup))
+    {
+        std::cerr << "IniManager::loadGlobalSettings: Invalid settings; using defaults.\n";
+        return true;
+    }
+
+    settings.exitToTaskbar = exitToTaskbar;
+    settings.runAtStartup = runAtStartup;
+    settings.currentProfile = ini.get("Settings").get("currentIni");
+
+    if (!loadHotkey(ini, "toggleFilterHotkey", settings.toggleFilterHotkey) || !loadHotkey(ini, "peekHotkey", settings.peekHotkey))
+    {
+        std::cerr << "IniManager::loadGlobalSettings: Invalid hotkey settings; using defaults.\n";
+    }
+
+    return true;
+}
+
+bool IniManager::isValidProfileName(const std::string &name) const
+{
+    return !name.empty() && name.find_first_not_of(" \t\r\n") != std::string::npos && name.find_first_of("<>:\"/\\|?*") == std::string::npos;
+}
+
+std::string IniManager::makeUniqueProfileName(const std::string &baseName) const
+{
+    if (!std::filesystem::exists(profileDirectory / (baseName + ".ini")))
+    {
+        return baseName;
+    }
+
+    int suffix = 1;
+
+    while (true)
+    {
+        const std::string candidate = baseName + " (" + std::to_string(suffix) + ")";
+
+        if (!std::filesystem::exists(profileDirectory / (candidate + ".ini")))
+        {
+            return candidate;
+        }
+
+        ++suffix;
+    }
 }

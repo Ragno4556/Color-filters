@@ -1,73 +1,55 @@
 # ColorFilters
 
-ColorFilters is a Windows desktop application that applies customizable color filters to one or more monitors by modifying the display gamma ramp.
-
-The project is written in C++ using Qt and the Windows GDI API.
+ColorFilters is a lightweight Windows desktop app for applying adjustable color filters to one or more displays. It modifies each display's gamma ramp and restores the original values when the filter is disabled or the app exits.
 
 ## Features
 
-- Adjustable color tint
-- Adjustable filter intensity
-- Adjustable gamma
-- Multi-monitor support
-- Save and load filter profiles
-- Duplicate profiles
-- Hotkey support (planned)
-- Start with Windows (planned)
-- Start minimized (planned)
-
-## How It Works
-
-ColorFilters enumerates each connected monitor using the Windows API and stores its original gamma ramp.
-
-When a filter is applied, the application generates a new gamma ramp using the selected tint, intensity, and gamma values, then applies it to each monitor individually.
-
-The application uses the following Windows APIs:
-
-- `EnumDisplayMonitors`
-- `CreateDC`
-- `GetDeviceGammaRamp`
-- `SetDeviceGammaRamp`
-
-When the filter is disabled, the original gamma ramps are restored.
-
-## Project Structure
-
-```
-ColorFilters/
-│
-├── cpp/                Source files
-├── h/                  Header files
-├── form/               Qt Designer UI files
-├── resources/          Icons and other resources
-├── ColorFilters.pro    Qt project file
-└── resources.qrc
-```
+- Adjustable tint, intensity, and gamma
+- Independent or synchronized multi-display filtering
+- Create, duplicate, import, delete, and switch profiles
+- Configurable system-wide toggle and hold-to-peek hotkeys
+- Optional Windows startup launch
+- Optional system-tray operation
+- Automatic restoration of original display gamma ramps
 
 ## Requirements
 
 - Windows 10 or Windows 11
-- Qt 6
-- C++17
-- MinGW or MSVC
+- Qt 6 with the Widgets module
+- A C++17 compiler supported by Qt, such as MinGW-w64 or MSVC
 
-## Building
+## Build
 
-Clone the repository:
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/Ragno4556/Color-filters.git
+   cd Color-filters
+   ```
+
+2. Open `ColorFilters.pro` in Qt Creator.
+3. Select a Qt 6 desktop kit.
+4. Build and run the project.
+
+From a configured Qt command prompt, you can also build with:
 
 ```bash
-git clone https://github.com/Ragno4556/Color-filters.git
+qmake ColorFilters.pro
+mingw32-make
 ```
 
-Open `ColorFilters.pro` in Qt Creator and build the project.
+Use `nmake` instead of `mingw32-make` when building with MSVC.
 
-## Future Plans
+## Data storage
 
-- Global hotkeys
-- System tray support
-- Import and export profiles
-- Additional startup options
+Profiles and global settings are stored under the application's Windows AppData directory. ColorFilters does not modify the repository or require administrator access during normal use.
+
+## Notes
+
+- Global shortcuts are active while ColorFilters is running, including when it is minimized or hidden in the system tray.
+- Some displays or graphics drivers may not support software gamma-ramp changes.
+- Windows secure-desktop screens are not affected by the app or its shortcuts.
 
 ## License
 
-MIT License
+ColorFilters is available under the [MIT License](LICENSE).

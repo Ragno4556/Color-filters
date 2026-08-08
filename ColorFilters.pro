@@ -1,10 +1,13 @@
 QT += widgets
 
-CONFIG += c++17
+TARGET = ColorFilters
+VERSION = 1.0.0
+
+CONFIG += c++17 warn_on
+DEFINES += NOMINMAX WIN32_LEAN_AND_MEAN
 
 SOURCES += \
     cpp/ColorController.cpp \
-    cpp/ConfigManager.cpp \
     cpp/INIManager.cpp \
     cpp/Monitor.cpp \
     cpp/MonitorManager.cpp \
@@ -13,7 +16,6 @@ SOURCES += \
 
 HEADERS += \
     h/ColorController.h \
-    h/ConfigManager.h \
     h/FilterSettings.h \
     h/INIManager.h \
     h/Monitor.h \
@@ -26,14 +28,6 @@ FORMS += \
     form/mainwindow.ui
 
 INCLUDEPATH += h
-
-qnx: target.path = /tmp/$${TARGET}/bin
-else: unix:!android: target.path = /opt/$${TARGET}/bin
-!isEmpty(target.path): INSTALLS += target
-
-DISTFILES += \
-    form/style.qss \
-    resources/Apps-colors-icon_31805.ico
 
 RESOURCES += \
     resources.qrc

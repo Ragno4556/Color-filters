@@ -3,439 +3,197 @@
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
   <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>271</width>
-    <height>172</height>
-   </rect>
+   <rect><x>0</x><y>0</y><width>360</width><height>292</height></rect>
   </property>
   <property name="minimumSize">
-   <size>
-    <width>0</width>
-    <height>0</height>
-   </size>
+   <size><width>360</width><height>292</height></size>
   </property>
   <property name="maximumSize">
-   <size>
-    <width>1000000</width>
-    <height>1000000</height>
-   </size>
+   <size><width>360</width><height>292</height></size>
   </property>
-  <property name="acceptDrops">
-   <bool>false</bool>
-  </property>
-  <property name="windowTitle">
-   <string>Color Filters</string>
-  </property>
+  <property name="windowTitle"><string>Color Filters</string></property>
   <property name="windowIcon">
    <iconset resource="../resources.qrc">
     <normaloff>:/resources/Apps-colors-icon_31805.ico</normaloff>:/resources/Apps-colors-icon_31805.ico</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <property name="minimumSize">
-    <size>
-     <width>271</width>
-     <height>172</height>
-    </size>
-   </property>
-   <property name="maximumSize">
-    <size>
-     <width>271</width>
-     <height>172</height>
-    </size>
-   </property>
-   <widget class="QTabWidget" name="tabSelector">
-    <property name="geometry">
-     <rect>
-      <x>5</x>
-      <y>4</y>
-      <width>260</width>
-      <height>164</height>
-     </rect>
-    </property>
-    <property name="currentIndex">
-     <number>2</number>
-    </property>
-    <widget class="QWidget" name="filterTab">
-     <attribute name="title">
-      <string>FIlter</string>
-     </attribute>
-     <widget class="QSlider" name="horizontalSlider">
-      <property name="geometry">
-       <rect>
-        <x>300</x>
-        <y>20</y>
-        <width>160</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="orientation">
-       <enum>Qt::Orientation::Horizontal</enum>
-      </property>
+   <layout class="QVBoxLayout" name="windowLayout">
+    <property name="leftMargin"><number>8</number></property>
+    <property name="topMargin"><number>8</number></property>
+    <property name="rightMargin"><number>8</number></property>
+    <property name="bottomMargin"><number>8</number></property>
+    <property name="spacing"><number>6</number></property>
+    <item>
+     <widget class="QFrame" name="titleBar">
+      <property name="minimumSize"><size><width>0</width><height>30</height></size></property>
+      <property name="maximumSize"><size><width>16777215</width><height>30</height></size></property>
+      <property name="frameShape"><enum>QFrame::Shape::NoFrame</enum></property>
+      <layout class="QHBoxLayout" name="titleBarLayout">
+       <property name="spacing"><number>7</number></property>
+       <property name="leftMargin"><number>7</number></property>
+       <property name="topMargin"><number>0</number></property>
+       <property name="rightMargin"><number>0</number></property>
+       <property name="bottomMargin"><number>0</number></property>
+       <item><widget class="QLabel" name="appIconLabel"><property name="minimumSize"><size><width>16</width><height>16</height></size></property><property name="maximumSize"><size><width>16</width><height>16</height></size></property></widget></item>
+       <item><widget class="QLabel" name="appTitleLabel"><property name="text"><string>Color Filters</string></property></widget></item>
+       <item><spacer name="titleBarSpacer"><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property></spacer></item>
+       <item><widget class="QToolButton" name="minimizeButton"><property name="minimumSize"><size><width>36</width><height>30</height></size></property><property name="maximumSize"><size><width>36</width><height>30</height></size></property><property name="text"><string>—</string></property></widget></item>
+       <item><widget class="QToolButton" name="closeButton"><property name="minimumSize"><size><width>36</width><height>30</height></size></property><property name="maximumSize"><size><width>36</width><height>30</height></size></property><property name="text"><string>×</string></property></widget></item>
+      </layout>
      </widget>
-     <widget class="QLabel" name="label">
-      <property name="geometry">
-       <rect>
-        <x>8</x>
-        <y>37</y>
-        <width>27</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <pointsize>9</pointsize>
-       </font>
-      </property>
-      <property name="text">
-       <string>Tint</string>
-      </property>
+    </item>
+    <item>
+     <widget class="QTabWidget" name="tabSelector">
+      <property name="currentIndex"><number>0</number></property>
+      <property name="documentMode"><bool>true</bool></property>
+      <property name="usesScrollButtons"><bool>false</bool></property>
+      <property name="elideMode"><enum>Qt::TextElideMode::ElideNone</enum></property>
+      <widget class="QWidget" name="filterTab">
+       <attribute name="title"><string>Filter</string></attribute>
+       <layout class="QVBoxLayout" name="filterLayout">
+        <property name="spacing"><number>10</number></property>
+        <property name="leftMargin"><number>12</number></property>
+        <property name="topMargin"><number>12</number></property>
+        <property name="rightMargin"><number>12</number></property>
+        <property name="bottomMargin"><number>12</number></property>
+        <item>
+         <layout class="QHBoxLayout" name="displayRow">
+          <property name="spacing"><number>8</number></property>
+          <item><widget class="QLabel" name="displayLabel"><property name="text"><string>Display</string></property></widget></item>
+          <item>
+           <widget class="QComboBox" name="monitorSelector">
+            <property name="sizePolicy"><sizepolicy hsizetype="Expanding" vsizetype="Fixed"><horstretch>1</horstretch><verstretch>0</verstretch></sizepolicy></property>
+            <property name="placeholderText"><string>Select a display</string></property>
+           </widget>
+          </item>
+          <item><widget class="QPushButton" name="saveButton"><property name="text"><string>Save</string></property></widget></item>
+          <item>
+           <widget class="QPushButton" name="resetButton">
+            <property name="minimumSize"><size><width>72</width><height>24</height></size></property>
+            <property name="text"><string>Reset</string></property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="adjustmentsGroup">
+          <property name="title"><string>Adjustments</string></property>
+          <layout class="QGridLayout" name="adjustmentsLayout">
+           <property name="horizontalSpacing"><number>10</number></property>
+           <property name="verticalSpacing"><number>8</number></property>
+           <item row="0" column="0"><widget class="QLabel" name="tintLabel"><property name="text"><string>Tint</string></property></widget></item>
+           <item row="0" column="1">
+            <widget class="QSlider" name="tintSlider">
+             <property name="maximum"><number>359</number></property>
+             <property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property>
+            </widget>
+           </item>
+           <item row="1" column="0"><widget class="QLabel" name="intensityLabel"><property name="text"><string>Intensity</string></property></widget></item>
+           <item row="1" column="1">
+            <widget class="QSlider" name="intensitySlider">
+             <property name="maximum"><number>100</number></property>
+             <property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property>
+            </widget>
+           </item>
+           <item row="2" column="0"><widget class="QLabel" name="gammaLabel"><property name="text"><string>Gamma</string></property></widget></item>
+           <item row="2" column="1">
+            <widget class="QSlider" name="gammaSlider">
+             <property name="minimum"><number>50</number></property>
+             <property name="maximum"><number>200</number></property>
+             <property name="value"><number>100</number></property>
+             <property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="filterOptionsRow">
+          <item><widget class="QCheckBox" name="filterToggle"><property name="text"><string>Enable filter</string></property><property name="checked"><bool>true</bool></property></widget></item>
+          <item><spacer name="filterOptionsSpacer"><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property></spacer></item>
+          <item><widget class="QCheckBox" name="globalToggle"><property name="text"><string>Sync displays</string></property><property name="checked"><bool>true</bool></property></widget></item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="hotKeysTab">
+       <attribute name="title"><string>Hotkeys</string></attribute>
+       <layout class="QVBoxLayout" name="hotkeysLayout">
+        <property name="spacing"><number>10</number></property>
+        <property name="leftMargin"><number>12</number></property>
+        <property name="topMargin"><number>12</number></property>
+        <property name="rightMargin"><number>12</number></property>
+        <property name="bottomMargin"><number>12</number></property>
+        <item><widget class="QLabel" name="hotkeysTitle"><property name="text"><string>Keyboard shortcuts</string></property><property name="objectName"><string>sectionTitle</string></property></widget></item>
+        <item><widget class="QLabel" name="hotkeysHint"><property name="text"><string>Choose the shortcuts used to control the filter.</string></property><property name="objectName"><string>secondaryText</string></property></widget></item>
+        <item>
+         <widget class="QGroupBox" name="shortcutsGroup">
+          <property name="title"><string>Shortcuts</string></property>
+          <layout class="QGridLayout" name="shortcutsLayout">
+           <property name="horizontalSpacing"><number>8</number></property>
+           <property name="verticalSpacing"><number>10</number></property>
+           <item row="0" column="0"><widget class="QLabel" name="toggleLabel"><property name="text"><string>Toggle filter</string></property></widget></item>
+           <item row="0" column="1"><widget class="QLineEdit" name="toggleText"><property name="readOnly"><bool>true</bool></property></widget></item>
+           <item row="0" column="2"><widget class="QPushButton" name="toggleSetButton"><property name="text"><string>Set</string></property></widget></item>
+           <item row="1" column="0"><widget class="QLabel" name="peekLabel"><property name="text"><string>Hold to peek</string></property></widget></item>
+           <item row="1" column="1"><widget class="QLineEdit" name="peekText"><property name="readOnly"><bool>true</bool></property></widget></item>
+           <item row="1" column="2"><widget class="QPushButton" name="peekSetButton"><property name="text"><string>Set</string></property></widget></item>
+          </layout>
+         </widget>
+        </item>
+        <item><spacer name="hotkeysSpacer"><property name="orientation"><enum>Qt::Orientation::Vertical</enum></property><property name="sizeHint" stdset="0"><size><width>20</width><height>20</height></size></property></spacer></item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="settingsTab">
+       <attribute name="title"><string>Settings</string></attribute>
+       <layout class="QVBoxLayout" name="settingsLayout">
+        <property name="spacing"><number>10</number></property>
+        <property name="leftMargin"><number>12</number></property>
+        <property name="topMargin"><number>12</number></property>
+        <property name="rightMargin"><number>12</number></property>
+        <property name="bottomMargin"><number>12</number></property>
+        <item>
+         <widget class="QGroupBox" name="profilesGroup">
+          <property name="title"><string>Profiles</string></property>
+          <layout class="QVBoxLayout" name="profilesLayout">
+           <property name="spacing"><number>8</number></property>
+           <item>
+            <layout class="QHBoxLayout" name="profileSelectionRow">
+             <property name="spacing"><number>8</number></property>
+             <item><widget class="QComboBox" name="iniSelector"><property name="sizePolicy"><sizepolicy hsizetype="Expanding" vsizetype="Fixed"><horstretch>1</horstretch><verstretch>0</verstretch></sizepolicy></property></widget></item>
+             <item><widget class="QPushButton" name="LoadIniButton"><property name="text"><string>Import</string></property></widget></item>
+             <item><widget class="QPushButton" name="folderButton"><property name="text"><string>Open folder</string></property></widget></item>
+            </layout>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="profileActionsRow">
+             <property name="spacing"><number>8</number></property>
+             <item><widget class="QPushButton" name="newIniButton"><property name="text"><string>New</string></property></widget></item>
+             <item><widget class="QPushButton" name="duplicateIniButton"><property name="text"><string>Duplicate</string></property></widget></item>
+             <item><widget class="QPushButton" name="deleteIniButton"><property name="text"><string>Delete</string></property><property name="objectName"><string>dangerButton</string></property></widget></item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="applicationGroup">
+          <property name="title"><string>Application</string></property>
+          <layout class="QHBoxLayout" name="applicationLayout">
+           <item><widget class="QCheckBox" name="exitToTaskbarToggle"><property name="text"><string>Keep running in tray</string></property><property name="checked"><bool>true</bool></property></widget></item>
+           <item><spacer name="applicationSpacer"><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>20</width><height>20</height></size></property></spacer></item>
+           <item><widget class="QCheckBox" name="runAtStartupToggle"><property name="text"><string>Run at startup</string></property><property name="checked"><bool>true</bool></property></widget></item>
+          </layout>
+         </widget>
+        </item>
+        <item><spacer name="settingsSpacer"><property name="orientation"><enum>Qt::Orientation::Vertical</enum></property><property name="sizeHint" stdset="0"><size><width>20</width><height>10</height></size></property></spacer></item>
+       </layout>
+      </widget>
      </widget>
-     <widget class="QLabel" name="label_2">
-      <property name="geometry">
-       <rect>
-        <x>8</x>
-        <y>62</y>
-        <width>48</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <pointsize>9</pointsize>
-       </font>
-      </property>
-      <property name="text">
-       <string>Intensity</string>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_3">
-      <property name="geometry">
-       <rect>
-        <x>8</x>
-        <y>87</y>
-        <width>48</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <pointsize>9</pointsize>
-       </font>
-      </property>
-      <property name="text">
-       <string>Gamma</string>
-      </property>
-     </widget>
-     <widget class="QSlider" name="tintSlider">
-      <property name="geometry">
-       <rect>
-        <x>60</x>
-        <y>38</y>
-        <width>189</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="maximum">
-       <number>359</number>
-      </property>
-      <property name="orientation">
-       <enum>Qt::Orientation::Horizontal</enum>
-      </property>
-     </widget>
-     <widget class="QSlider" name="intensitySlider">
-      <property name="geometry">
-       <rect>
-        <x>59</x>
-        <y>63</y>
-        <width>190</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="maximum">
-       <number>100</number>
-      </property>
-      <property name="orientation">
-       <enum>Qt::Orientation::Horizontal</enum>
-      </property>
-     </widget>
-     <widget class="QSlider" name="gammaSlider">
-      <property name="geometry">
-       <rect>
-        <x>60</x>
-        <y>88</y>
-        <width>189</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="minimum">
-       <number>50</number>
-      </property>
-      <property name="maximum">
-       <number>200</number>
-      </property>
-      <property name="value">
-       <number>100</number>
-      </property>
-      <property name="orientation">
-       <enum>Qt::Orientation::Horizontal</enum>
-      </property>
-     </widget>
-     <widget class="QCheckBox" name="filterToggle">
-      <property name="geometry">
-       <rect>
-        <x>16</x>
-        <y>110</y>
-        <width>101</width>
-        <height>21</height>
-       </rect>
-      </property>
-      <property name="layoutDirection">
-       <enum>Qt::LayoutDirection::RightToLeft</enum>
-      </property>
-      <property name="text">
-       <string>Toggle Filter</string>
-      </property>
-      <property name="checked">
-       <bool>true</bool>
-      </property>
-     </widget>
-     <widget class="QComboBox" name="monitorSelector">
-      <property name="geometry">
-       <rect>
-        <x>4</x>
-        <y>7</y>
-        <width>174</width>
-        <height>24</height>
-       </rect>
-      </property>
-      <property name="placeholderText">
-       <string>Monitor</string>
-      </property>
-     </widget>
-     <widget class="QCheckBox" name="globalToggle">
-      <property name="geometry">
-       <rect>
-        <x>120</x>
-        <y>110</y>
-        <width>111</width>
-        <height>21</height>
-       </rect>
-      </property>
-      <property name="layoutDirection">
-       <enum>Qt::LayoutDirection::RightToLeft</enum>
-      </property>
-      <property name="text">
-       <string>Sync Monitors</string>
-      </property>
-      <property name="checked">
-       <bool>true</bool>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="resetButton">
-      <property name="geometry">
-       <rect>
-        <x>148</x>
-        <y>-20</y>
-        <width>74</width>
-        <height>23</height>
-       </rect>
-      </property>
-      <property name="minimumSize">
-       <size>
-        <width>74</width>
-        <height>23</height>
-       </size>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>74</width>
-        <height>23</height>
-       </size>
-      </property>
-      <property name="text">
-       <string>Reset</string>
-      </property>
-     </widget>
-     <widget class="QFrame" name="colorPreviewFrame">
-      <property name="geometry">
-       <rect>
-        <x>183</x>
-        <y>8</y>
-        <width>18</width>
-        <height>22</height>
-       </rect>
-      </property>
-      <property name="frameShape">
-       <enum>QFrame::Shape::StyledPanel</enum>
-      </property>
-      <property name="frameShadow">
-       <enum>QFrame::Shadow::Raised</enum>
-      </property>
-      <property name="lineWidth">
-       <number>0</number>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="duplicateButton_2">
-      <property name="geometry">
-       <rect>
-        <x>204</x>
-        <y>5</y>
-        <width>47</width>
-        <height>27</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Save</string>
-      </property>
-     </widget>
-    </widget>
-    <widget class="QWidget" name="hotKeysTab">
-     <attribute name="title">
-      <string>Hotkeys</string>
-     </attribute>
-     <widget class="QComboBox" name="hotkeySelector">
-      <property name="geometry">
-       <rect>
-        <x>3</x>
-        <y>5</y>
-        <width>249</width>
-        <height>24</height>
-       </rect>
-      </property>
-      <property name="currentIndex">
-       <number>-1</number>
-      </property>
-      <property name="placeholderText">
-       <string>Hotkey</string>
-      </property>
-      <item>
-       <property name="text">
-        <string>Toggle Filter [PLACEHOLDER]</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>Peek Filter [ PLACEHOLDER]</string>
-       </property>
-      </item>
-     </widget>
-     <widget class="QPushButton" name="resetHotkeyButton">
-      <property name="geometry">
-       <rect>
-        <x>183</x>
-        <y>108</y>
-        <width>70</width>
-        <height>26</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Reset</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="setButton">
-      <property name="geometry">
-       <rect>
-        <x>111</x>
-        <y>108</y>
-        <width>70</width>
-        <height>26</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Set</string>
-      </property>
-     </widget>
-    </widget>
-    <widget class="QWidget" name="settingsTab">
-     <attribute name="title">
-      <string>Settings</string>
-     </attribute>
-     <widget class="QPushButton" name="LoadIniButton">
-      <property name="geometry">
-       <rect>
-        <x>132</x>
-        <y>28</y>
-        <width>50</width>
-        <height>26</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Load</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="duplicateIniButton">
-      <property name="geometry">
-       <rect>
-        <x>184</x>
-        <y>28</y>
-        <width>67</width>
-        <height>26</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Duplicate</string>
-      </property>
-     </widget>
-     <widget class="QLabel" name="iniLabel">
-      <property name="geometry">
-       <rect>
-        <x>5</x>
-        <y>7</y>
-        <width>41</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>.INI File:</string>
-      </property>
-     </widget>
-     <widget class="QComboBox" name="iniSelector">
-      <property name="geometry">
-       <rect>
-        <x>50</x>
-        <y>5</y>
-        <width>201</width>
-        <height>22</height>
-       </rect>
-      </property>
-      <property name="placeholderText">
-       <string/>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="newIniButton">
-      <property name="geometry">
-       <rect>
-        <x>80</x>
-        <y>28</y>
-        <width>50</width>
-        <height>26</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>New</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="deleteIniButton">
-      <property name="geometry">
-       <rect>
-        <x>28</x>
-        <y>28</y>
-        <width>50</width>
-        <height>26</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Delete</string>
-      </property>
-     </widget>
-    </widget>
-   </widget>
+    </item>
+   </layout>
   </widget>
  </widget>
- <resources>
-  <include location="../resources.qrc"/>
- </resources>
+ <resources><include location="../resources.qrc"/></resources>
  <connections/>
 </ui>

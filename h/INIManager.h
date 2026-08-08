@@ -2,51 +2,52 @@
 
 #include "MonitorManager.h"
 #include "ini.h"
-#include "windows.h"
 
+#include <QVector>
 #include <filesystem>
-#include <vector>
 #include <string>
+#include <vector>
 
-//IniData struct stores the ini's name and the .ini's ini structure.
-struct IniData{
-    std::string iniFilename;
-    mINI::INIStructure iniStructure;
+struct GlobalSettings
+{
+    bool exitToTaskbar = false;
+    bool runAtStartup = false;
+    std::string currentProfile;
+    QVector<int> toggleFilterHotkey = {Qt::Key_Control, Qt::Key_K};
+    QVector<int> peekHotkey = {Qt::Key_Control, Qt::Key_P};
 };
 
-//IniManager handles the loading, saving, creation, and deletion of ini files.
-class IniManager {
-private:
-    //Reference to the MonitorManager created by mainwindow.cpp. References all monitor data.
-    MonitorManager& monitorManager;
+class IniManager
+{
+  public:
+    explicit IniManager(MonitorManager &monitorManager);
 
-    //IniData vector that contains the data of every .ini in the directory. (AppData/Roaming/ColorFilters/Profiles)
-    std::vector<IniData> loadedInis;
-
-    //Path where .ini files are stored by default (AppData/Roaming/ColorFilters/Profiles)
-    std::filesystem::path profilesDirectory;
-
-    //Helpers
-    std::string makeUniqueName(const std::string& fileName);
-
-public:
-    //Initialization functions
-    //Needed constructor to pass in MonitorManager reference from mainwindow.cpp
-    explicit IniManager(MonitorManager& manager) : monitorManager(manager) {}
     bool initialize();
 
-    //Ini modification functions
-    void createNewIni(const std::string& fileName);
-    void duplicateIni(const std::string& sourceName, const std::string& fileName);
-    void deleteIni(const std::string& fileName);
+    bool createProfile(const std::string &name);
+    bool duplicateProfile(const std::string &sourceName, const std::string &newName);
+    bool deleteProfile(const std::string &name);
+    bool importProfile(const std::filesystem::path &sourcePath);
 
+    bool loadProfile(const std::string &name);
+    bool saveProfile(const std::string &name) const;
+    bool saveGlobalSettings() const;
 
-    //Saving and loading functions
-    void saveSettingsToIni(const FilterSettings& filterSettings, const std::string& fileName);
-    FilterSettings loadSettingsFromIni(const std::string& fileName) const;
+    const std::vector<std::string> &profiles() const;
+    const std::filesystem::path &profilesDirectory() const;
 
-    //Getters
-    std::vector<IniData>& getLoadedInis();
-    const std::vector<IniData>& getLoadedInis() const;
+    GlobalSettings &globalSettings();
+    const GlobalSettings &globalSettings() const;
+
+  private:
+    MonitorManager &monitorManager;
+    std::vector<std::string> loadedProfiles;
+    std::filesystem::path profileDirectory;
+    std::filesystem::path globalSettingsFile;
+    GlobalSettings settings;
+
+    bool loadProfiles();
+    bool loadGlobalSettings();
+    bool isValidProfileName(const std::string &name) const;
+    std::string makeUniqueProfileName(const std::string &baseName) const;
 };
-

@@ -1,31 +1,21 @@
 #pragma once
 
+#include "Monitor.h"
+
 #include <vector>
 
-#include "Monitor.h"
-#include "FilterSettings.h"
+class MonitorManager
+{
+  public:
+    bool initialize();
+    bool restoreAllGammaRamps();
 
-class MonitorManager {
- private:
-  std::vector<Monitor> monitors;
-  FilterSettings globalSettings;
+    Monitor &getMonitor(int index);
+    const Monitor &getMonitor(int index) const;
 
- public:
-  bool initialize();
-  bool restoreAllGammaRamps();
+    std::vector<Monitor> &getMonitorVector();
+    const std::vector<Monitor> &getMonitorVector() const;
 
-  int getMonitorCount() const;
-
-  Monitor& getMonitor(int index);
-  const Monitor& getMonitor(int index) const;
-
-  std::vector<Monitor>& getMonitorVector();
-  const std::vector<Monitor>& getMonitorVector() const;
-
-
-  FilterSettings& getGlobalSettings();
-  const FilterSettings& getGlobalSettings() const;
-
-  bool applyAll();
-  bool applyAllGlobal();
+  private:
+    std::vector<Monitor> monitors;
 };

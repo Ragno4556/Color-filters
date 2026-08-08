@@ -1,55 +1,31 @@
 #pragma once
 
-#include <Windows.h>
 #include "FilterSettings.h"
 
+#include <Windows.h>
 
 #include <array>
 #include <string>
 
-#include "RGB.h"
-
 class Monitor
 {
-public:
+  public:
+    using GammaRamp = std::array<std::array<WORD, 256>, 3>;
 
-    using GammaRamp = std::array<std::array<WORD,256>,3>;
+    bool initialize(HMONITOR monitorHandle);
 
-    bool init(HMONITOR monitorHandle);
-
-    // Filter control
     bool applyFilter();
-    bool applyFilter(const FilterSettings& settings);
     bool restoreGammaRamp();
 
-    // Settings
-    FilterSettings& getFilterSettings();
-    const FilterSettings& getFilterSettings() const;
-    void setFilterSettings(const FilterSettings& settings);
+    FilterSettings &getFilterSettings();
+    const FilterSettings &getFilterSettings() const;
 
-    // Calculated values
-    const RGB& getRGB() const;
+    const std::wstring &getDeviceName() const;
 
-    // Gamma ramps
-    const GammaRamp& getCurrentGamma() const;
-    const GammaRamp& getOriginalGamma() const;
-
-    // Device information
-    const std::wstring& getDeviceName() const;
-    const std::wstring& getFriendlyName() const;
-private:
-
-    // Windows monitor data
+  private:
     std::wstring deviceName;
-
     GammaRamp originalGamma{};
-    GammaRamp currentGamma{};
-
-    // Filter state
     FilterSettings filterSettings{};
-    RGB currentRGB{};
 
     HDC createHDC() const;
-
-
 };

@@ -2,33 +2,33 @@
 
 #include <Windows.h>
 
+#include <exception>
 #include <iostream>
 #include <utility>
 
 namespace
 {
-BOOL CALLBACK MonitorEnumProc(
-    HMONITOR monitorHandle,
-    HDC,
-    LPRECT,
-    LPARAM data)
+BOOL CALLBACK addMonitor(HMONITOR monitorHandle, HDC, LPRECT, LPARAM data)
 {
-    auto* monitors =
-        reinterpret_cast<std::vector<Monitor>*>(data);
-
-    Monitor monitor;
-
-    if (!monitor.init(monitorHandle))
+    try
     {
-        std::cerr << "MonitorManager: Failed to initialize monitor\n";
+        auto *monitors = reinterpret_cast<std::vector<Monitor> *>(data);
+        Monitor monitor;
 
-        // Continue searching for other monitors.
+        if (!monitor.initialize(monitorHandle))
+        {
+            std::cerr << "MonitorManager: Could not initialize a monitor.\n";
+            return TRUE;
+        }
+
+        monitors->push_back(std::move(monitor));
         return TRUE;
     }
-
-    monitors->push_back(std::move(monitor));
-
-    return TRUE;
+    catch (const std::exception &error)
+    {
+        std::cerr << "MonitorManager: Monitor enumeration failed: " << error.what() << '\n';
+        return FALSE;
+    }
 }
 }
 
@@ -36,114 +36,52 @@ bool MonitorManager::initialize()
 {
     monitors.clear();
 
-    globalSettings = {};
-
-    if (!EnumDisplayMonitors(
-            nullptr,
-            nullptr,
-            MonitorEnumProc,
-            reinterpret_cast<LPARAM>(&monitors)))
+    if (!EnumDisplayMonitors(nullptr, nullptr, addMonitor, reinterpret_cast<LPARAM>(&monitors)))
     {
-        std::cerr
-            << "MonitorManager::initialize: "
-            << "EnumDisplayMonitors failed\n";
-
+        std::cerr << "MonitorManager::initialize: Monitor scan failed.\n";
         return false;
     }
 
     if (monitors.empty())
     {
-        std::cerr
-            << "MonitorManager::initialize: "
-            << "No monitors were initialized\n";
-
+        std::cerr << "MonitorManager::initialize: No monitors found.\n";
         return false;
     }
-
-    std::cout
-        << monitors.size()
-        << " monitor(s) initialized\n";
 
     return true;
 }
 
 bool MonitorManager::restoreAllGammaRamps()
 {
-    bool allSucceeded = true;
+    bool succeeded = true;
 
-    for (Monitor& monitor : monitors)
+    for (Monitor &monitor : monitors)
     {
         if (!monitor.restoreGammaRamp())
         {
-            allSucceeded = false;
+            succeeded = false;
         }
     }
 
-    return allSucceeded;
+    return succeeded;
 }
 
-int MonitorManager::getMonitorCount() const
-{
-    return static_cast<int>(monitors.size());
-}
-
-Monitor& MonitorManager::getMonitor(int index)
+Monitor &MonitorManager::getMonitor(int index)
 {
     return monitors.at(index);
 }
 
-const Monitor& MonitorManager::getMonitor(int index) const
+const Monitor &MonitorManager::getMonitor(int index) const
 {
     return monitors.at(index);
 }
 
-std::vector<Monitor>& MonitorManager::getMonitorVector()
+std::vector<Monitor> &MonitorManager::getMonitorVector()
 {
     return monitors;
 }
 
-const std::vector<Monitor>& MonitorManager::getMonitorVector() const
+const std::vector<Monitor> &MonitorManager::getMonitorVector() const
 {
     return monitors;
 }
-
-FilterSettings& MonitorManager::getGlobalSettings()
-{
-    return globalSettings;
-}
-
-const FilterSettings& MonitorManager::getGlobalSettings() const
-{
-    return globalSettings;
-}
-
-bool MonitorManager::applyAll()
-{
-    bool allSucceeded = true;
-
-    for (Monitor& monitor : monitors)
-    {
-        if (!monitor.applyFilter())
-        {
-            allSucceeded = false;
-        }
-    }
-
-    return allSucceeded;
-}
-
-bool MonitorManager::applyAllGlobal()
-{
-    bool allSucceeded = true;
-
-    for (Monitor& monitor : monitors)
-    {
-        if (!monitor.applyFilter(globalSettings))
-        {
-            allSucceeded = false;
-        }
-    }
-
-    return allSucceeded;
-}
-
