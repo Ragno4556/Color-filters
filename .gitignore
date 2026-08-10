@@ -2,6 +2,7 @@
 build*/
 debug/
 release/
+/dist/
 Makefile
 Makefile.*
 
@@ -24,6 +25,7 @@ ui_*.h
 *.obj
 *.out
 *.pdb
+*.clang-format
 
 # Editor settings and logs
 .qtcreator/
