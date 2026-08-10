@@ -1,5 +1,4 @@
 * text=auto
-
 *.cpp text eol=lf
 *.h text eol=lf
 *.md text eol=lf
@@ -7,5 +6,5 @@
 *.qrc text eol=lf
 *.qss text eol=lf
 *.ui text eol=lf
-
 *.ico binary
+*.gif filter=lfs diff=lfs merge=lfs -text
