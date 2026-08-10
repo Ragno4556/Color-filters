@@ -1,16 +1,22 @@
 # ColorFilters
 
-ColorFilters is a lightweight Windows desktop app for applying adjustable color filters to one or more displays. It modifies each display's gamma ramp and restores the original values when the filter is disabled or the app exits.
+ColorFilters is a Windows desktop app for applying adjustable color filters to one or more displays. It modifies each display's gamma ramp and restores the original values when the filter is disabled or the app exits. This program was inspired by IOS's color filters accessibility options that Windows lacks.
 
 ## Features
 
 - Adjustable tint, intensity, and gamma
+  <img width="360" height="292" alt="Screenshot 2026-08-10 113320" src="https://github.com/user-attachments/assets/8cb7dd6c-9867-49d1-9291-a04536fade4e" />
 - Independent or synchronized multi-display filtering
+  https://github.com/user-attachments/assets/52874db2-3370-4af0-93eb-65fe5c653fbb
+
+
+
 - Create, duplicate, import, delete, and switch profiles
 - Configurable system-wide toggle and hold-to-peek hotkeys
 - Optional Windows startup launch
 - Optional system-tray operation
 - Automatic restoration of original display gamma ramps
+
 
 ## Requirements
 
