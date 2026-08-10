@@ -5,18 +5,17 @@ ColorFilters is a Windows desktop app for applying adjustable color filters to o
 ## Features
 
 - Adjustable tint, intensity, and gamma
-  <br>
-  <br>
-   <video autoplay loop muted playsinline controls width="100%">
-    <source src="assets/2.mp4" type="video/mp4">
-  </video>
+<img width="360" height="292" alt="filter" src="https://github.com/user-attachments/assets/44999926-4784-4673-a14b-49a9aa1d3f92" />
+<br>
 - Independent or synchronized multi-display filtering
-  
-
-
-
 - Create, duplicate, import, delete, and switch profiles
+<br>
+<img width="360" height="292" alt="settings" src="https://github.com/user-attachments/assets/9d9b6eaa-d4ba-4c06-8dda-20ee5bfafc9a" />
+<br>
 - Configurable system-wide toggle and hold-to-peek hotkeys
+<br>
+<img width="360" height="292" alt="hotkeys" src="https://github.com/user-attachments/assets/ab307424-49be-483d-93e4-71d82ec0f00b" />
+<br>
 - Optional Windows startup launch
 - Optional system-tray operation
 - Automatic restoration of original display gamma ramps
